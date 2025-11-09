@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
@@ -16,34 +15,17 @@ export default function SplashScreen() {
     }, []);
 
     return (
-        <View style={styles.container}>
-            {/* Gradiente base */}
-            <LinearGradient
-                colors={['#00B2FF', '#15ACEB', '#1C87DD', '#1E42B5']}
-                style={StyleSheet.absoluteFillObject}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-            />
-            
-            {/* Capa de nubes 1 - diagonal */}
-            <LinearGradient
-                colors={['transparent', '#BAE6FD80', '#7DD3FC60', 'transparent']}
-                style={[StyleSheet.absoluteFillObject, { opacity: 0.1 }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0.5 }}
-                locations={[0, 0.3, 0.6, 1]}
-            />
-            
-          
+        <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
+            {/* Fondo blanco limpio */}
 
             <View style={styles.content}>
                 <Image
-                    source={require('@/assets/images/CoraWealth_LogoSinFondo.png')}
+                    source={require('@/assets/images/LogoN.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
-                
-                <Text style={styles.tagline}>POR CORA</Text>
+
+                <Text style={[styles.tagline, { color: '#0F172A' }]}>BY CORA</Text>
             </View>
         </View>
     );
@@ -72,7 +54,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         letterSpacing: 1,
         opacity: 0.9,
-        fontFamily: 'Poppins',
+        fontFamily: 'Inter',
     },
 
 
