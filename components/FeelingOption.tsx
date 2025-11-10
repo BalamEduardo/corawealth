@@ -4,7 +4,8 @@ import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import { MinimalIcon } from './MinimalIcon';
 
 const colors = {
-    cyan: '#2CC4F0', // un poco más fuerte que '#38BDF8'
+    // Use the exact cyan used by the onboarding progress bar
+    cyan: '#38BDF8',
     text: '#0F172A',
     muted: '#6B7280',
     white: '#FFFFFF',
@@ -159,7 +160,8 @@ const styles = StyleSheet.create({
     },
     optionContainerSelected: {
         borderColor: 'transparent',
-        backgroundColor: 'rgba(186, 230, 253, 0.4)',
+        // Translucent tint using the exact onboarding cyan so the hue matches the progress bar
+        backgroundColor: 'rgba(56, 189, 248, 0.4)',
     },
     gradientBorder: {
         position: 'absolute',
@@ -201,12 +203,12 @@ const styles = StyleSheet.create({
     optionText: {
         flex: 1,
         fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '400',
         color: colors.text,
         fontFamily: 'Inter',
     },
     optionTextSelected: {
         color: colors.text,
-        fontWeight: '600',
+        fontWeight: '500',
     },
 });

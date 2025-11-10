@@ -1,10 +1,11 @@
-import { FrequencyIcon, IncomeIcon, SavingIcon } from '@/components/PlanIcons';
+import { CurrencyIcon, FrequencyIcon, IncomeIcon, SavingIcon } from '@/components/PlanIcons';
+import { Picker } from '@react-native-picker/picker';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,6 +36,10 @@ export default function PlanSetupScreen() {
     const [incomeFrequency, setIncomeFrequency] = useState<Frequency>(null);
     const [savingGoal, setSavingGoal] = useState<number | null>(null);
     const [savingFrequency, setSavingFrequency] = useState<Frequency>(null);
+    
+    // Estados para modales del picker en iOS
+    const [showIncomeFrequencyModal, setShowIncomeFrequencyModal] = useState(false);
+    const [showSavingFrequencyModal, setShowSavingFrequencyModal] = useState(false);
     
     const currentStep = 3;
     const totalSteps = 4;
@@ -111,17 +116,6 @@ export default function PlanSetupScreen() {
         setSavingGoal(parseNumber(text));
     };
 
-    const handleFrequencySelect = (frequency: Frequency, type: 'income' | 'saving') => {
-        if (Platform.OS === 'ios') {
-            Haptics.selectionAsync();
-        }
-        if (type === 'income') {
-            setIncomeFrequency(frequency);
-        } else {
-            setSavingFrequency(frequency);
-        }
-    };
-
     const handleContinue = () => {
         if (isFormValid) {
             if (Platform.OS === 'ios') {
@@ -173,143 +167,210 @@ export default function PlanSetupScreen() {
                                     </Text>
                                 </View>
 
-                {/* Sección: Ingresos */}
-                <View style={styles.formSection}>
-                    <View style={styles.cardShadow}>
-                        <View style={styles.inputCard}>
-                            <BlurView
-                                intensity={BLUR_INTENSITY.card}
-                                tint="light"
-                                style={styles.cardBlur}
-                            >
-                                <View style={styles.inputHeader}>
-                                    <View style={styles.iconBadge}>
-                                        <IncomeIcon size={24} color={colors.cyan} />
+                                {/* Sección: Ingresos */}
+                                <View style={styles.inputSection}>
+                                    <View style={styles.inputHeader}>
+                                        <View style={styles.iconBadge}>
+                                            <IncomeIcon size={24} color={colors.cyan} />
+                                        </View>
+                                        <Text style={styles.inputLabel}>Tus ingresos aproximados</Text>
                                     </View>
-                                    <Text style={styles.inputLabel}>Tus ingresos aproximados</Text>
-                                </View>
-                                
-                                {/* Input de monto */}
-                                <View style={styles.inputWrapper}>
-                                    <Text style={styles.currencySymbol}>$</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="0"
-                                        placeholderTextColor="rgba(107, 114, 128, 0.5)"
-                                        value={income === null ? '' : nf.format(income)}
-                                        onChangeText={handleIncomeChange}
-                                        keyboardType="number-pad"
-                                        returnKeyType="done"
-                                    />
-                                    <Text style={styles.currencyLabel}>MXN</Text>
-                                </View>
+                                    
+                                    {/* Input de monto */}
+                                    <View style={styles.inputWrapper}>
+                                        <View style={styles.currencyIconWrapper}>
+                                            <CurrencyIcon size={18} color={colors.cyan} />
+                                        </View>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="0"
+                                            placeholderTextColor="rgba(107, 114, 128, 0.5)"
+                                            value={income === null ? '' : nf.format(income)}
+                                            onChangeText={handleIncomeChange}
+                                            keyboardType="number-pad"
+                                            returnKeyType="done"
+                                        />
+                                        <Text style={styles.currencyLabel}>MXN</Text>
+                                    </View>
 
-                                {/* Selector de frecuencia */}
-                                <View style={styles.frequencyContainer}>
-                                    <View style={styles.frequencyHeader}>
-                                        <FrequencyIcon size={16} color={colors.muted} />
-                                        <Text style={styles.frequencyLabel}>Frecuencia</Text>
-                                    </View>
-                                    <View style={styles.frequencyButtons}>
-                                        {frequencies.map((freq) => {
-                                            const selected = incomeFrequency === freq.id;
-                                            return (
-                                                <TouchableOpacity
-                                                    key={freq.id}
-                                                    accessibilityRole="radio"
-                                                    accessibilityLabel={freq.label}
-                                                    accessibilityState={{ selected }}
-                                                    style={[
-                                                        styles.frequencyButton,
-                                                        selected && styles.frequencyButtonSelected
-                                                    ]}
-                                                    onPress={() => handleFrequencySelect(freq.id as Frequency, 'income')}
-                                                    activeOpacity={0.8}
+                                    {/* Selector de frecuencia */}
+                                    <View style={styles.frequencyContainer}>
+                                        <View style={styles.frequencyHeader}>
+                                            <FrequencyIcon size={16} color={colors.muted} />
+                                            <Text style={styles.frequencyLabel}>Frecuencia</Text>
+                                        </View>
+                                        {Platform.OS === 'ios' ? (
+                                            <>
+                                                <TouchableOpacity 
+                                                    style={styles.pickerButton}
+                                                    onPress={() => {
+                                                        Haptics.selectionAsync();
+                                                        setShowIncomeFrequencyModal(true);
+                                                    }}
                                                 >
-                                                    <Text style={[
-                                                        styles.frequencyButtonText,
-                                                        selected && styles.frequencyButtonTextSelected
-                                            ]}>
-                                                        {freq.label}
+                                                    <Text style={styles.pickerButtonText}>
+                                                        {frequencies.find(f => f.id === incomeFrequency)?.label || 'Seleccionar'}
                                                     </Text>
+                                                    <Text style={styles.pickerArrow}>▼</Text>
                                                 </TouchableOpacity>
-                                            );
-                                        })}
-                                    </View>
-                                </View>
-                            </BlurView>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Sección: Meta de Ahorro */}
-                <View style={styles.formSection}>
-                    <View style={styles.cardShadow}>
-                        <View style={styles.inputCard}>
-                            <BlurView
-                                intensity={BLUR_INTENSITY.card}
-                                tint="light"
-                                style={styles.cardBlur}
-                            >
-                                <View style={styles.inputHeader}>
-                                    <View style={styles.iconBadge}>
-                                        <SavingIcon size={24} color={colors.cyan} />
-                                    </View>
-                                    <Text style={styles.inputLabel}>Tu meta de ahorro inicial</Text>
-                                </View>
-                                
-                                {/* Input de monto */}
-                                <View style={styles.inputWrapper}>
-                                    <Text style={styles.currencySymbol}>$</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="0"
-                                        placeholderTextColor="rgba(107, 114, 128, 0.5)"
-                                        value={savingGoal === null ? '' : nf.format(savingGoal)}
-                                        onChangeText={handleSavingChange}
-                                        keyboardType="number-pad"
-                                        returnKeyType="done"
-                                    />
-                                    <Text style={styles.currencyLabel}>MXN</Text>
-                                </View>
-
-                                {/* Selector de frecuencia */}
-                                <View style={styles.frequencyContainer}>
-                                    <View style={styles.frequencyHeader}>
-                                        <FrequencyIcon size={16} color={colors.muted} />
-                                        <Text style={styles.frequencyLabel}>Frecuencia</Text>
-                                    </View>
-                                    <View style={styles.frequencyButtons}>
-                                        {frequencies.map((freq) => {
-                                            const selected = savingFrequency === freq.id;
-                                            return (
-                                                <TouchableOpacity
-                                                    key={freq.id}
-                                                    accessibilityRole="radio"
-                                                    accessibilityLabel={freq.label}
-                                                    accessibilityState={{ selected }}
-                                                    style={[
-                                                        styles.frequencyButton,
-                                                        selected && styles.frequencyButtonSelected
-                                                    ]}
-                                                    onPress={() => handleFrequencySelect(freq.id as Frequency, 'saving')}
-                                                    activeOpacity={0.8}
+                                                
+                                                <Modal
+                                                    visible={showIncomeFrequencyModal}
+                                                    transparent={true}
+                                                    animationType="fade"
                                                 >
-                                                    <Text style={[
-                                                        styles.frequencyButtonText,
-                                                        selected && styles.frequencyButtonTextSelected
-                                                    ]}>
-                                                        {freq.label}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            );
-                                        })}
+                                                    <View style={styles.modalOverlay}>
+                                                        <View style={styles.modalContent}>
+                                                            <View style={styles.modalHeader}>
+                                                                <Text style={styles.modalTitle}>Selecciona frecuencia</Text>
+                                                            </View>
+                                                            <Picker
+                                                                selectedValue={incomeFrequency}
+                                                                onValueChange={(itemValue) => {
+                                                                    Haptics.selectionAsync();
+                                                                    setIncomeFrequency(itemValue);
+                                                                }}
+                                                                style={styles.modalPicker}
+                                                                itemStyle={styles.modalPickerItem}
+                                                            >
+                                                                {frequencies.map((freq) => (
+                                                                    <Picker.Item key={freq.id} label={freq.label} value={freq.id} />
+                                                                ))}
+                                                            </Picker>
+                                                            <TouchableOpacity
+                                                                style={styles.modalButton}
+                                                                onPress={() => {
+                                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                                                    setShowIncomeFrequencyModal(false);
+                                                                }}
+                                                            >
+                                                                <Text style={styles.modalButtonText}>OK</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                </Modal>
+                                            </>
+                                        ) : (
+                                            <View style={styles.pickerWrapper}>
+                                                <Picker
+                                                    selectedValue={incomeFrequency}
+                                                    onValueChange={(itemValue) => {
+                                                        setIncomeFrequency(itemValue);
+                                                    }}
+                                                    style={styles.picker}
+                                                >
+                                                    {frequencies.map((freq) => (
+                                                        <Picker.Item key={freq.id} label={freq.label} value={freq.id} />
+                                                    ))}
+                                                </Picker>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
-                            </BlurView>
-                        </View>
-                    </View>
-                </View>
+
+                                {/* Separador */}
+                                <View style={styles.separator} />
+
+                                {/* Sección: Meta de Ahorro */}
+                                <View style={styles.inputSection}>
+                                    <View style={styles.inputHeader}>
+                                        <View style={styles.iconBadge}>
+                                            <SavingIcon size={24} color={colors.cyan} />
+                                        </View>
+                                        <Text style={styles.inputLabel}>Tu meta de ahorro inicial</Text>
+                                    </View>
+                                    
+                                    {/* Input de monto */}
+                                    <View style={styles.inputWrapper}>
+                                        <View style={styles.currencyIconWrapper}>
+                                            <CurrencyIcon size={18} color={colors.cyan} />
+                                        </View>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="0"
+                                            placeholderTextColor="rgba(107, 114, 128, 0.5)"
+                                            value={savingGoal === null ? '' : nf.format(savingGoal)}
+                                            onChangeText={handleSavingChange}
+                                            keyboardType="number-pad"
+                                            returnKeyType="done"
+                                        />
+                                        <Text style={styles.currencyLabel}>MXN</Text>
+                                    </View>
+
+                                    {/* Selector de frecuencia */}
+                                    <View style={styles.frequencyContainer}>
+                                        <View style={styles.frequencyHeader}>
+                                            <FrequencyIcon size={16} color={colors.muted} />
+                                            <Text style={styles.frequencyLabel}>Frecuencia</Text>
+                                        </View>
+                                        {Platform.OS === 'ios' ? (
+                                            <>
+                                                <TouchableOpacity 
+                                                    style={styles.pickerButton}
+                                                    onPress={() => {
+                                                        Haptics.selectionAsync();
+                                                        setShowSavingFrequencyModal(true);
+                                                    }}
+                                                >
+                                                    <Text style={styles.pickerButtonText}>
+                                                        {frequencies.find(f => f.id === savingFrequency)?.label || 'Seleccionar'}
+                                                    </Text>
+                                                    <Text style={styles.pickerArrow}>▼</Text>
+                                                </TouchableOpacity>
+                                                
+                                                <Modal
+                                                    visible={showSavingFrequencyModal}
+                                                    transparent={true}
+                                                    animationType="fade"
+                                                >
+                                                    <View style={styles.modalOverlay}>
+                                                        <View style={styles.modalContent}>
+                                                            <View style={styles.modalHeader}>
+                                                                <Text style={styles.modalTitle}>Selecciona frecuencia</Text>
+                                                            </View>
+                                                            <Picker
+                                                                selectedValue={savingFrequency}
+                                                                onValueChange={(itemValue) => {
+                                                                    Haptics.selectionAsync();
+                                                                    setSavingFrequency(itemValue);
+                                                                }}
+                                                                style={styles.modalPicker}
+                                                                itemStyle={styles.modalPickerItem}
+                                                            >
+                                                                {frequencies.map((freq) => (
+                                                                    <Picker.Item key={freq.id} label={freq.label} value={freq.id} />
+                                                                ))}
+                                                            </Picker>
+                                                            <TouchableOpacity
+                                                                style={styles.modalButton}
+                                                                onPress={() => {
+                                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                                                    setShowSavingFrequencyModal(false);
+                                                                }}
+                                                            >
+                                                                <Text style={styles.modalButtonText}>OK</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                </Modal>
+                                            </>
+                                        ) : (
+                                            <View style={styles.pickerWrapper}>
+                                                <Picker
+                                                    selectedValue={savingFrequency}
+                                                    onValueChange={(itemValue) => {
+                                                        setSavingFrequency(itemValue);
+                                                    }}
+                                                    style={styles.picker}
+                                                >
+                                                    {frequencies.map((freq) => (
+                                                        <Picker.Item key={freq.id} label={freq.label} value={freq.id} />
+                                                    ))}
+                                                </Picker>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
 
                                 {/* Nota informativa */}
                                 <View style={styles.infoNote}>
@@ -444,8 +505,9 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         letterSpacing: 0.2,
     },
-    formSection: {
-        marginBottom: 24,
+    // Secciones de input sin card individual
+    inputSection: {
+        marginBottom: 32,
     },
     cardShadow: {
         ...shadow(colors.muted, 4, 8, 0.15),
@@ -464,7 +526,7 @@ const styles = StyleSheet.create({
     inputHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     iconBadge: {
         width: 48,
@@ -477,7 +539,7 @@ const styles = StyleSheet.create({
         ...shadow(colors.cyan, 2, 4, 0.15),
     },
     inputLabel: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         color: colors.text,
         fontFamily: 'Inter',
@@ -487,24 +549,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(241, 245, 249, 0.8)',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        borderRadius: 100,
+        paddingHorizontal: 18,
+        paddingVertical: 18,
         borderWidth: 1.5,
         borderColor: 'rgba(203, 213, 225, 0.5)',
         marginBottom: 20,
     },
-    currencySymbol: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.text,
-        fontFamily: 'Inter',
-        marginRight: 8,
+    currencyIconWrapper: {
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     input: {
         flex: 1,
-        fontSize: 24,
-        fontWeight: '700',
+        fontSize: 18,
+        fontWeight: '500',
         color: colors.text,
         fontFamily: 'Inter',
         padding: 0,
@@ -534,29 +594,99 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 10,
     },
-    frequencyButton: {
-        flex: 1,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.6)',
-        borderWidth: 2,
+    // Reemplazado por Picker nativo
+    pickerWrapper: {
+        backgroundColor: 'rgba(241, 245, 249, 0.8)',
+        borderRadius: 50,
+        borderWidth: 1,
         borderColor: 'rgba(203, 213, 225, 0.5)',
+        overflow: 'hidden',
+    },
+    picker: {
+        height: Platform.OS === 'ios' ? 50 : 50,
+        width: '100%',
+    },
+    pickerItem: {
+        fontSize: 16,
+        fontFamily: 'Inter',
+        color: colors.text,
+        height: 50,
+    },
+    // Botón del picker en iOS
+    pickerButton: {
+        backgroundColor: 'rgba(241, 245, 249, 0.8)',
+        borderRadius: 50,
+        borderWidth: 1,
+        borderColor: 'rgba(203, 213, 225, 0.5)',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    pickerButtonText: {
+        fontSize: 16,
+        fontFamily: 'Inter',
+        color: colors.text,
+        fontWeight: '500',
+    },
+    pickerArrow: {
+        fontSize: 12,
+        color: colors.muted,
+    },
+    // Modal para iOS
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: colors.white,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: 34,
+    },
+    modalHeader: {
+        paddingVertical: 20,
+        paddingHorizontal: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(203, 213, 225, 0.3)',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        fontFamily: 'Inter',
+        color: colors.text,
+        textAlign: 'center',
+    },
+    modalPicker: {
+        width: '100%',
+        height: 200,
+    },
+    modalPickerItem: {
+        fontSize: 18,
+        fontFamily: 'Inter',
+        color: colors.text,
+    },
+    modalButton: {
+        backgroundColor: colors.cyan,
+        marginHorizontal: 24,
+        marginTop: 16,
+        paddingVertical: 16,
+        borderRadius: 50,
         alignItems: 'center',
     },
-    frequencyButtonSelected: {
-        backgroundColor: 'rgba(186, 230, 253, 0.4)',
-        borderColor: colors.cyan,
-    },
-    frequencyButtonText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.text,
-        fontFamily: 'Inter',
-    },
-    frequencyButtonTextSelected: {
+    modalButtonText: {
+        fontSize: 16,
         fontWeight: '700',
-        color: colors.text,
+        fontFamily: 'Inter',
+        color: colors.white,
+        letterSpacing: 0.5,
+    },
+    separator: {
+        height: 1,
+        backgroundColor: 'rgba(203, 213, 225, 0.3)',
+        marginVertical: 32,
     },
     infoNote: {
         flexDirection: 'row',

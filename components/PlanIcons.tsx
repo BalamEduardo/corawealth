@@ -49,3 +49,22 @@ export const FrequencyIcon = ({ size = 16, color = '#6B7280' }: IconProps) => (
         />
     </Svg>
 );
+
+export const CurrencyIcon = ({ size = 20, color = '#38BDF8' }: IconProps) => (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+        {/* Símbolo $ delgado y minimalista */}
+        <Path 
+            d="M10 3 L10 17" 
+            stroke={color} 
+            strokeWidth="1.5" 
+            strokeLinecap="round"
+        />
+        <Path 
+            d="M13 6 C13 4.5 11.5 4 10 4 C8.5 4 7 4.5 7 6 C7 7.5 8.5 8 10 8 C11.5 8 13 8.5 13 10 C13 11.5 11.5 12 10 12 C8.5 12 7 11.5 7 10" 
+            stroke={color} 
+            strokeWidth="1.5" 
+            strokeLinecap="round"
+            fill="none"
+        />
+    </Svg>
+);
